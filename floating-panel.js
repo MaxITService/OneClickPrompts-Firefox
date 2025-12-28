@@ -73,7 +73,6 @@ window.MaxExtensionFloatingPanel = {
     queueBeepEnabled: false,
     queueSpeakEnabled: false,
     queueFinishBeepEnabled: false,
-    queueKeepTabActiveEnabled: false,
     queueAutomationButtons: null,
     queuePreSendControlsWrapper: null,
     queueAudioContext: null,
