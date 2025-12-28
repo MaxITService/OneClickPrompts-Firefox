@@ -39,7 +39,7 @@ if (Test-Path $gitignorePath) {
 $parent = Split-Path $source -Parent
 
 # Define the target directory path
-$targetFolderName = "OneClickPrompts Release"
+$targetFolderName = "OneClickPrompts-Firefox"
 $destination = Join-Path $parent $targetFolderName
 
 # Define the ZIP file path
