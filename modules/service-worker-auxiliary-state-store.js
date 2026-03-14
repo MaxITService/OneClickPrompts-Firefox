@@ -50,7 +50,7 @@ const KEYS = {
     crossChat: 'modules.crossChat', // object { settings: {...}, storedPrompt: string }
     inlineProfileSelector: 'modules.inlineProfileSelector', // object { enabled:boolean, placement:'before'|'after' }
     tokenApproximator: 'modules.tokenApproximator', // object { enabled:boolean, calibration:number, threadMode:string, showEditorCounter:boolean, placement:'before'|'after' }
-    selectorAutoDetector: 'modules.selectorAutoDetector', // object { enableEditorHeuristics:boolean, enableSendButtonHeuristics:boolean }
+    selectorAutoDetector: 'modules.selectorAutoDetector', // object { enableEditorHeuristics:boolean, enableSendButtonHeuristics:boolean, enableStopButtonHeuristics:boolean, enableContainerHeuristics:boolean, notifyContainerMissing:boolean, autoFallbackToFloatingPanel:boolean }
     tooltip: 'modules.tooltip', // object { enabled:boolean, showDelayMs:number, fontColor:string|null }
     manualQueueCards: 'modules.manualQueueCards', // object { cards: Array<{emoji:string, text:string}>, expanded:boolean }
   },
@@ -86,8 +86,12 @@ const CROSS_CHAT_DEFAULT_SETTINGS = {
 };
 
 const SELECTOR_AUTO_DETECTOR_DEFAULTS = {
-  enableEditorHeuristics: true,
-  enableSendButtonHeuristics: true,
+  enableEditorHeuristics: false,
+  enableSendButtonHeuristics: false,
+  enableStopButtonHeuristics: false,
+  enableContainerHeuristics: false,
+  notifyContainerMissing: false,
+  autoFallbackToFloatingPanel: true,
 };
 
 // Utilities to get/set nested key paths by flattening as separate storage entries
@@ -209,8 +213,12 @@ async function getValue(path) {
     const obj = r[KEYS.modules.selectorAutoDetector];
     if (obj && typeof obj === 'object') {
       return {
-        enableEditorHeuristics: !!obj.enableEditorHeuristics,
-        enableSendButtonHeuristics: !!obj.enableSendButtonHeuristics,
+        enableEditorHeuristics: obj.enableEditorHeuristics === true,
+        enableSendButtonHeuristics: obj.enableSendButtonHeuristics === true,
+        enableStopButtonHeuristics: obj.enableStopButtonHeuristics === true,
+        enableContainerHeuristics: obj.enableContainerHeuristics === true,
+        notifyContainerMissing: obj.notifyContainerMissing === true,
+        autoFallbackToFloatingPanel: obj.autoFallbackToFloatingPanel !== false,
       };
     }
     return { ...SELECTOR_AUTO_DETECTOR_DEFAULTS };
@@ -376,8 +384,12 @@ async function setValue(path, value) {
   if (path === KEYS.modules.selectorAutoDetector) {
     const settings = value && typeof value === 'object' ? value : {};
     const normalized = {
-      enableEditorHeuristics: settings.enableEditorHeuristics !== false,
-      enableSendButtonHeuristics: settings.enableSendButtonHeuristics !== false,
+      enableEditorHeuristics: settings.enableEditorHeuristics === true,
+      enableSendButtonHeuristics: settings.enableSendButtonHeuristics === true,
+      enableStopButtonHeuristics: settings.enableStopButtonHeuristics === true,
+      enableContainerHeuristics: settings.enableContainerHeuristics === true,
+      notifyContainerMissing: settings.notifyContainerMissing === true,
+      autoFallbackToFloatingPanel: settings.autoFallbackToFloatingPanel !== false,
     };
     await lsSet({ [KEYS.modules.selectorAutoDetector]: normalized });
     return;

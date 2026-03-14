@@ -60,7 +60,7 @@
             <span class="menu-btn-icon">↔️</span>Wider
           </button>
         </nav>
-        <div id="version" class="small-hoovering-text menu-version">Version 0.0.5.7</div>
+        <div id="version" class="small-hoovering-text menu-version">Version 0.0.6.1</div>
       </section>
       
       <!-- Button Configuration via button cards (buttons have their UI - each on card that is added dynamically) -->
@@ -220,10 +220,11 @@
       <!-- ===== Settings  ===== -->
       <section class="section" id="settingsSection">
         <h2>Settings</h2>
-        <div class="row">
+        <div class="row settings-linked-row">
           <label
             class="checkbox-row"
             for="autoSendToggle"
+            id="autoSendToggleLabel"
             title="Default for new sites. Each site remembers its own setting after you toggle it on the chat page. This only affects sites where you haven't changed the toggle yet."
           >
             <input type="checkbox" id="autoSendToggle" />
@@ -231,15 +232,34 @@
               >Auto-send (default for new sites)</span
             >
           </label>
+          <label
+            class="checkbox-row"
+            for="hideOnPageAutoSendToggle"
+            id="hideOnPageAutoSendToggleLabel"
+            title="This controls visibility of the on-page Auto-send checkbox near your injected button row."
+          >
+            <input type="checkbox" id="hideOnPageAutoSendToggle" />
+            <span>Hide Auto-send on-page control</span>
+          </label>
         </div>
-        <div class="row">
+        <div class="row settings-linked-row">
           <label
             class="checkbox-row"
             for="shortcutsToggle"
+            id="shortcutsToggleLabel"
             title="Default for new sites. Each site remembers its own setting after you toggle it on the chat page. This only affects sites where you haven't changed the toggle yet."
           >
             <input type="checkbox" id="shortcutsToggle" />
             <span>Keyboard Shortcuts (default for new sites)</span>
+          </label>
+          <label
+            class="checkbox-row"
+            for="hideOnPageHotkeysToggle"
+            id="hideOnPageHotkeysToggleLabel"
+            title="This controls visibility of the on-page Hotkeys checkbox near your injected button row."
+          >
+            <input type="checkbox" id="hideOnPageHotkeysToggle" />
+            <span>Hide Hotkeys on-page control</span>
           </label>
         </div>
         <div class="row">
@@ -261,6 +281,17 @@
             <span class="toggle-icon">▶</span>
           </div>
           <div class="section-content">
+            <div class="row queue-setting-row">
+              <label
+                class="checkbox-row"
+                for="hideOnPageFloatingPanelToggle"
+                id="hideOnPageFloatingPanelToggleLabel"
+                title="Hide the floating panel on-page toggle button (🔼) for cleaner UI."
+              >
+                <input type="checkbox" id="hideOnPageFloatingPanelToggle" />
+                <span>Hide floating panel toggle button (🔼)</span>
+              </label>
+            </div>
             <div id="panelPositionSettings">
               <div class="subsection-header">
                 <h3>Panel Position & Reset (Floating Panel position is profile independent)</h3>
@@ -1278,6 +1309,13 @@
               it.
             </li>
             <li>
+              If buttons or auto-clicking stop working, go to Settings and open
+              "Advanced Selector Configuration". Turn on heuristics for the
+              editor, send button, and stop button. The extension will then try
+              to auto-detect the places where buttons are injected and where
+              clicks should happen, even if the website changed its structure.
+            </li>
+            <li>
               In case something is not working: try to use English version of
               the websites. LLMs do not care about language, so you can use any
               language you want in chat, while keeping interface language
@@ -1400,6 +1438,44 @@
             </button>
           </div>
           <br />
+          <label
+            class="checkbox-row advanced-notify-checkbox"
+            for="containerMissingNotifyCheckbox"
+          >
+            <input
+              type="checkbox"
+              id="containerMissingNotifyCheckbox"
+              aria-label="Notify me when OneClickPrompts cannot inject buttons"
+            />
+            <span>Notify me when extension cannot inject buttons (this may happen when either page updated by developers and there is nowhere to insert buttons, but it may also happen if you are in settings or just previewing the picture).</span>
+          </label>
+          <label
+            class="checkbox-row advanced-notify-checkbox"
+            for="autoFloatingFallbackCheckbox"
+          >
+            <input
+              type="checkbox"
+              id="autoFloatingFallbackCheckbox"
+              aria-label="If buttons cannot be injected, use fallback and enable floating panel"
+            />
+            <span>If extension could not find where to inject buttons, then do fallback and enable floating panel.</span>
+          </label>
+          <div class="toggle-container">
+            <div class="toggle">
+              <input
+                type="checkbox"
+                id="containerHeuristicsToggle"
+                class="toggle__input"
+                aria-label="Enable heuristics when the injection target is not found"
+              />
+              <label for="containerHeuristicsToggle" class="toggle__label">
+                <span class="toggle__emoji"></span>
+                <span class="toggle__emoji"></span>
+              </label>
+            </div>
+            <span class="switch-label">Use heuristics when injection target is not found</span>
+          </div>
+           <br />
           <div class="toggle-container">
             <div class="toggle">
               <input
@@ -1432,8 +1508,8 @@
             <span class="switch-label">Use heuristics when send button is not found</span>
           </div>
            <br />
-          <div class="toggle-container" title="tesst">
-            <div class="toggle" data-ocp-tooltip="Enable this if the extension fails to find the Stop button on the page.">
+          <div class="toggle-container">
+            <div class="toggle">
               <input
                 type="checkbox"
                 id="stopButtonHeuristicsToggle"
@@ -1445,7 +1521,7 @@
                 <span class="toggle__emoji"></span>
               </label>
             </div>
-            <span class="switch-label" data-ocp-tooltip="Enable this if the extension fails to find the Stop button on the page.">Use heuristics when stop button is not found</span>
+            <span class="switch-label">Use heuristics when stop button is not found</span>
           </div>
            <br />
           <!-- Collapsible Help Section -->
@@ -1504,25 +1580,29 @@
                 </p>
                 <p><strong>Auto-Detection (Heuristics)</strong></p>
                 <p>
-                  If the configured selectors fail (e.g., after a website update),
-                  the extension attempts to "guess" the correct elements using
-                  smart heuristics.
+                  If something doesn't work on a website, enable the matching heuristic.
+                  The extension will try to find elements automatically.
                 </p>
                 <ul>
                   <li>
-                    <strong>Editor Heuristics:</strong> Scans for visible text
-                    areas and content-editable fields, usually picking the
-                    largest one near the bottom.
+                    <strong>Editor:</strong> Can't insert text? Enable this.
+                    Searches for text input areas on the page.
                   </li>
                   <li>
-                    <strong>Send Button Heuristics:</strong> Looks for buttons
-                    with "Send" icons or text, especially those positioned near
-                    the found editor.
+                    <strong>Send Button:</strong> Auto-send not working? Enable this.
+                    Searches for the Send button near the text input.
+                  </li>
+                  <li>
+                    <strong>Stop Button:</strong> Extension clicks Send while AI is typing?
+                    Enable this. Helps detect when AI is still generating a response.
+                  </li>
+                  <li>
+                    <strong>Injection Target:</strong> Buttons don't appear at all?
+                    Enable this. Searches for an alternative place to insert the extension's buttons.
                   </li>
                 </ul>
                 <p>
-                  Use the toggles above to disable this behavior if it
-                  incorrectly identifies elements.
+                  All heuristics are off by default. Turn them on only if you have problems.
                 </p>
               </div>
             </div>

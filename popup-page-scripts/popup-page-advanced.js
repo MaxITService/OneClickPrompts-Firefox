@@ -46,16 +46,22 @@ document.addEventListener('DOMContentLoaded', () => {
     const editorHeuristicsToggle = document.getElementById('editorHeuristicsToggle');
     const sendButtonHeuristicsToggle = document.getElementById('sendButtonHeuristicsToggle');
     const stopButtonHeuristicsToggle = document.getElementById('stopButtonHeuristicsToggle');
+    const containerHeuristicsToggle = document.getElementById('containerHeuristicsToggle');
+    const containerMissingNotifyCheckbox = document.getElementById('containerMissingNotifyCheckbox');
+    const autoFloatingFallbackCheckbox = document.getElementById('autoFloatingFallbackCheckbox');
 
     const heuristicsDefaults = {
-        enableEditorHeuristics: true,
-        enableSendButtonHeuristics: true,
-        enableStopButtonHeuristics: true,
+        enableEditorHeuristics: false,
+        enableSendButtonHeuristics: false,
+        enableStopButtonHeuristics: false,
+        enableContainerHeuristics: false,
+        notifyContainerMissing: false,
+        autoFallbackToFloatingPanel: true,
     };
     let heuristicsSettings = { ...heuristicsDefaults };
 
     async function loadHeuristicsSettings() {
-        if (!editorHeuristicsToggle || !sendButtonHeuristicsToggle || !stopButtonHeuristicsToggle) return;
+        if (!editorHeuristicsToggle || !sendButtonHeuristicsToggle || !stopButtonHeuristicsToggle || !containerHeuristicsToggle || !containerMissingNotifyCheckbox || !autoFloatingFallbackCheckbox) return;
         try {
             const response = await chrome.runtime.sendMessage({ type: 'getSelectorAutoDetectorSettings' });
             if (response && response.settings) {
@@ -71,6 +77,9 @@ document.addEventListener('DOMContentLoaded', () => {
         editorHeuristicsToggle.checked = !!heuristicsSettings.enableEditorHeuristics;
         sendButtonHeuristicsToggle.checked = !!heuristicsSettings.enableSendButtonHeuristics;
         stopButtonHeuristicsToggle.checked = !!heuristicsSettings.enableStopButtonHeuristics;
+        containerHeuristicsToggle.checked = !!heuristicsSettings.enableContainerHeuristics;
+        containerMissingNotifyCheckbox.checked = !!heuristicsSettings.notifyContainerMissing;
+        autoFloatingFallbackCheckbox.checked = !!heuristicsSettings.autoFallbackToFloatingPanel;
     }
 
     async function saveHeuristicsSettings() {
@@ -273,6 +282,24 @@ document.addEventListener('DOMContentLoaded', () => {
     if (stopButtonHeuristicsToggle) {
         stopButtonHeuristicsToggle.addEventListener('change', () => {
             heuristicsSettings.enableStopButtonHeuristics = stopButtonHeuristicsToggle.checked;
+            saveHeuristicsSettings();
+        });
+    }
+    if (containerHeuristicsToggle) {
+        containerHeuristicsToggle.addEventListener('change', () => {
+            heuristicsSettings.enableContainerHeuristics = containerHeuristicsToggle.checked;
+            saveHeuristicsSettings();
+        });
+    }
+    if (containerMissingNotifyCheckbox) {
+        containerMissingNotifyCheckbox.addEventListener('change', () => {
+            heuristicsSettings.notifyContainerMissing = containerMissingNotifyCheckbox.checked;
+            saveHeuristicsSettings();
+        });
+    }
+    if (autoFloatingFallbackCheckbox) {
+        autoFloatingFallbackCheckbox.addEventListener('change', () => {
+            heuristicsSettings.autoFallbackToFloatingPanel = autoFloatingFallbackCheckbox.checked;
             saveHeuristicsSettings();
         });
     }

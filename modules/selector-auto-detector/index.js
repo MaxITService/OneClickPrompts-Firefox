@@ -37,20 +37,22 @@ window.OneClickPromptsSelectorAutoDetector = {
             failures: 0,
             lastFailure: 0,
             recovering: false,
-            containerNotFoundToastEverShown: false,
-            containerNotFoundToastDismissed: false
+            lastMissingNotifyToastAt: 0
         }
     },
 
     config: {
         failureThreshold: 1, // Number of failures before triggering recovery (can be >1 to debounce)
-        cooldownMs: 2000     // Time to wait before re-alerting or re-trying
+        cooldownMs: 2000,    // Time to wait before re-alerting or re-trying
+        containerMissingNotifyDebounceMs: 30000
     },
     settings: {
-        enableEditorHeuristics: true,
-        enableSendButtonHeuristics: true,
-        enableStopButtonHeuristics: true,
-        enableContainerHeuristics: true,
+        enableEditorHeuristics: false,
+        enableSendButtonHeuristics: false,
+        enableStopButtonHeuristics: false,
+        enableContainerHeuristics: false,
+        notifyContainerMissing: false,
+        autoFallbackToFloatingPanel: true,
         loaded: false
     },
     lastOffers: {
@@ -112,6 +114,25 @@ window.OneClickPromptsSelectorAutoDetector = {
         }
     },
 
+    maybeNotifyContainerMissing: function () {
+        if (this.settings.notifyContainerMissing !== true || typeof window.showToast !== 'function') {
+            return;
+        }
+
+        const s = this.state.container;
+        const now = Date.now();
+        if ((now - (s.lastMissingNotifyToastAt || 0)) < this.config.containerMissingNotifyDebounceMs) {
+            return;
+        }
+
+        s.lastMissingNotifyToastAt = now;
+        window.showToast(
+            'OneClickPrompts: Extension cannot inject buttons here. This may happen if the page changed, or if you are in settings/preview pages with no injection target.',
+            'error',
+            10000
+        );
+    },
+
     /**
      * Initiates the recovery process.
      * @param {string} type - 'editor', 'sendButton', or 'container'
@@ -122,12 +143,23 @@ window.OneClickPromptsSelectorAutoDetector = {
         s.recovering = true;
 
         const heuristicsAllowed = type === 'editor'
-            ? this.settings.enableEditorHeuristics !== false
+            ? this.settings.enableEditorHeuristics === true
             : type === 'sendButton'
-                ? this.settings.enableSendButtonHeuristics !== false
+                ? this.settings.enableSendButtonHeuristics === true
                 : type === 'stopButton'
-                    ? this.settings.enableStopButtonHeuristics !== false
-                    : this.settings.enableContainerHeuristics !== false;
+                    ? this.settings.enableStopButtonHeuristics === true
+                    : this.settings.enableContainerHeuristics === true;
+
+        if (type === 'container') {
+            this.maybeNotifyContainerMissing();
+        }
+
+        // If heuristics are disabled, stop early and SILENTLY.
+        if (!heuristicsAllowed) {
+            logConCgp(`[SelectorAutoDetector] ${type} not found. Heuristics disabled; skipping recovery silently.`);
+            s.recovering = false;
+            return null;
+        }
 
         // Readable name for the type
         const typeName = type === 'editor' ? 'Text input area'
@@ -135,31 +167,16 @@ window.OneClickPromptsSelectorAutoDetector = {
                 : type === 'stopButton' ? 'stop button'
                     : 'button container';
 
-        // Unified message logic
-        const statusSuffix = heuristicsAllowed ? "Trying to find it..." : "Auto-detect is off.";
-        const toastType = heuristicsAllowed ? 'info' : 'error';
+        // Unified message logic (only reached if heuristicsAllowed is true)
+        const statusSuffix = "Trying to find it...";
+        const toastType = 'info';
 
         if (window.showToast) {
-            if (type === 'container' && heuristicsAllowed) {
-                if (!s.containerNotFoundToastEverShown && !s.containerNotFoundToastDismissed) {
-                    s.containerNotFoundToastEverShown = true;
-                    window.showToast('OneClickPrompts: Container where I can insert buttons is not found. Trying to find it automatically, results may disappoint you…', toastType, {
-                        duration: 10000,
-                        onDismiss: () => { s.containerNotFoundToastDismissed = true; }
-                    });
-                }
-            } else {
+            if (type !== 'container') {
                 window.showToast(`OneClickPrompts: ${typeName} not found. ${statusSuffix}`, toastType);
             }
         } else {
             logConCgp(`[SelectorAutoDetector] ${typeName} not found. ${statusSuffix}`);
-        }
-
-        // If heuristics are disabled, stop here.
-        if (!heuristicsAllowed) {
-            logConCgp(`[SelectorAutoDetector] Heuristics disabled for ${type}; skipping recovery.`);
-            s.recovering = false;
-            return null;
         }
 
         const site = window.InjectionTargetsOnWebsite?.activeSite || 'Unknown';
@@ -251,10 +268,12 @@ window.OneClickPromptsSelectorAutoDetector = {
             const response = await chrome.runtime.sendMessage({ type: 'getSelectorAutoDetectorSettings' });
             if (response && response.settings) {
                 this.settings = {
-                    enableEditorHeuristics: response.settings.enableEditorHeuristics !== false,
-                    enableSendButtonHeuristics: response.settings.enableSendButtonHeuristics !== false,
-                    enableStopButtonHeuristics: response.settings.enableStopButtonHeuristics !== false,
-                    enableContainerHeuristics: response.settings.enableContainerHeuristics !== false,
+                    enableEditorHeuristics: response.settings.enableEditorHeuristics === true,
+                    enableSendButtonHeuristics: response.settings.enableSendButtonHeuristics === true,
+                    enableStopButtonHeuristics: response.settings.enableStopButtonHeuristics === true,
+                    enableContainerHeuristics: response.settings.enableContainerHeuristics === true,
+                    notifyContainerMissing: response.settings.notifyContainerMissing === true,
+                    autoFallbackToFloatingPanel: response.settings.autoFallbackToFloatingPanel !== false,
                     loaded: true
                 };
             }
@@ -1044,10 +1063,12 @@ if (chrome?.runtime?.onMessage?.addListener) {
     chrome.runtime.onMessage.addListener((message) => {
         if (message?.type === 'selectorAutoDetectorSettingsChanged' && message.settings) {
             window.OneClickPromptsSelectorAutoDetector.settings = {
-                enableEditorHeuristics: message.settings.enableEditorHeuristics !== false,
-                enableSendButtonHeuristics: message.settings.enableSendButtonHeuristics !== false,
-                enableStopButtonHeuristics: message.settings.enableStopButtonHeuristics !== false,
-                enableContainerHeuristics: message.settings.enableContainerHeuristics !== false,
+                enableEditorHeuristics: message.settings.enableEditorHeuristics === true,
+                enableSendButtonHeuristics: message.settings.enableSendButtonHeuristics === true,
+                enableStopButtonHeuristics: message.settings.enableStopButtonHeuristics === true,
+                enableContainerHeuristics: message.settings.enableContainerHeuristics === true,
+                notifyContainerMissing: message.settings.notifyContainerMissing === true,
+                autoFallbackToFloatingPanel: message.settings.autoFallbackToFloatingPanel !== false,
                 loaded: true
             };
         }
